@@ -1,6 +1,6 @@
 import { db } from "../lib/db"
 import { blocks, pages } from "../lib/schema"
-import { companyInfo, departments, directions, mission, benefits as benefitsData, codeOfConduct } from "../../lib/data"
+import { companyInfo, mission, codeOfConduct } from "../../lib/data"
 import { eq } from "drizzle-orm"
 
 async function main() {
@@ -33,37 +33,59 @@ async function main() {
       type: "about",
       orderIndex: 1,
       content: {
+        title: "О компании",
+        subtitle: "Более " + (new Date().getFullYear() - companyInfo.founded) + " лет защищаем бизнес наших клиентов",
         founded: companyInfo.founded,
         employees: companyInfo.employees,
         offices: companyInfo.offices,
-        description:
-          "Более " + (new Date().getFullYear() - companyInfo.founded) + " лет защищаем бизнес наших клиентов",
       },
     },
     {
       type: "departments",
       orderIndex: 2,
-      content: { departments },
+      content: {
+        title: "Структура и отделы",
+        subtitle: "Познакомьтесь с командами, которые делают компанию успешной",
+      },
     },
     {
       type: "directions",
       orderIndex: 3,
-      content: { directions },
+      content: {
+        title: "Направления деятельности",
+        subtitle: "Комплексные решения для защиты вашего бизнеса",
+      },
     },
     {
       type: "mission",
       orderIndex: 4,
-      content: mission,
+      content: {
+        badge: "Наши ценности",
+        title: mission.title,
+        description: mission.description,
+        values: mission.values,
+      },
     },
     {
       type: "benefits",
       orderIndex: 5,
-      content: { benefits: benefitsData },
+      content: {
+        title: "Бонусы и льготы",
+        subtitle: "Мы ценим вклад каждого сотрудника",
+        linkTitle: "Всё о бонусах",
+        linkUrl: "https://docs.credos.ru",
+        linkSubtitle: "docs.credos.ru",
+      },
     },
     {
       type: "regulations",
       orderIndex: 6,
-      content: { codeOfConduct },
+      content: {
+        title: "Корпоративная этика",
+        subtitle: "Наши принципы и правила",
+        cardTitle: "Кодекс этики",
+        codeOfConduct,
+      },
     },
   ]
 

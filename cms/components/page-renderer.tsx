@@ -44,7 +44,7 @@ import { useEditor } from "../hooks/use-editor"
 import { EditableBlock } from "./editable-block"
 import { BlockPanel } from "./block-panel"
 import { Block } from "../types"
-import { companyInfo, codeOfConduct as codeOfConductData } from "@/lib/data"
+import { companyInfo, codeOfConduct as codeOfConductData, departments as departmentsData, directions as directionsData } from "@/lib/data"
 
 const deptIconMap: Record<string, any> = {
   TrendingUp, Megaphone, Settings, Code, Users, Calculator, Package, Scale, Building,
@@ -108,10 +108,10 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
       },
     },
     about: { content: { title: "О компании", subtitle: "Более 30 лет защищаем бизнес наших клиентов", founded: 1993, employees: 65, offices: [] } },
-    departments: { content: { title: "Структура и отделы", subtitle: "Познакомьтесь с командами, которые делают компанию успешной", departments: [] } },
-    directions: { content: { title: "Направления деятельности", subtitle: "Комплексные решения для защиты вашего бизнеса", directions: [] } },
+    departments: { content: { title: "Структура и отделы", subtitle: "Познакомьтесь с командами, которые делают компанию успешной" } },
+    directions: { content: { title: "Направления деятельности", subtitle: "Комплексные решения для защиты вашего бизнеса" } },
     mission: { content: { badge: "Наши ценности", title: "Наша миссия", description: "Описание", values: [] } },
-    benefits: { content: { title: "Бонусы и льготы", subtitle: "Мы ценим вклад каждого сотрудника", linkTitle: "Всё о бонусах", linkUrl: "https://docs.credos.ru", linkSubtitle: "docs.credos.ru", benefits: [] } },
+    benefits: { content: { title: "Бонусы и льготы", subtitle: "Мы ценим вклад каждого сотрудника", linkTitle: "Всё о бонусах", linkUrl: "https://docs.credos.ru", linkSubtitle: "docs.credos.ru" } },
     regulations: { content: { title: "Корпоративная этика", subtitle: "Наши принципы и правила", cardTitle: "Кодекс этики", codeOfConduct: [] } },
   }
 
@@ -397,7 +397,9 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "departments": {
-      const { departments = [], title = "Структура и отделы", subtitle = "Познакомьтесь с командами, которые делают компанию успешной" } = content
+      const { title = "Структура и отделы", subtitle = "Познакомьтесь с командами, которые делают компанию успешной" } = content
+      // Всегда используем данные из lib/data.ts для отделов
+      const displayDepartments = departmentsData
       return (
         <section id="departments" className="py-24 bg-gradient-to-b from-background via-muted/30 to-background relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-accent-purple/5 to-transparent rounded-full blur-3xl" />
@@ -417,7 +419,7 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
                 />
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {departments.map((dept: any, index: number) => {
+                {displayDepartments.map((dept: any, index: number) => {
                   const Icon = deptIconMap[dept.icon] || Building
                   const gradient = gradientMap[index % gradientMap.length]
                   return (
@@ -445,7 +447,9 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "directions": {
-      const { directions = [], title = "Направления деятельности", subtitle = "Комплексные решения для защиты вашего бизнеса" } = content
+      const { title = "Направления деятельности", subtitle = "Комплексные решения для защиты вашего бизнеса" } = content
+      // Всегда используем данные из lib/data.ts для направлений
+      const displayDirections = directionsData
       return (
         <section id="directions" className="py-24 bg-background">
           <div className="container mx-auto px-4">
@@ -463,7 +467,7 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
                 />
               </div>
               <div className="space-y-6">
-                {directions.map((dir: any, index: number) => {
+                {displayDirections.map((dir: any, index: number) => {
                   const Icon = dirIconMap[dir.icon] || Shield
                   return (
                     <Link key={dir.id || index} href={"/directions/" + dir.slug}>
@@ -534,9 +538,7 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "benefits": {
-      // Use placeholder content if no benefits (since user requested just a link)
-      // or check if benefits are empty and show the link logic
-      const { benefits = [], title = "Бонусы и льготы", subtitle = "Мы ценим вклад каждого сотрудника", linkTitle = "Всё о бонусах", linkUrl = "https://docs.credos.ru", linkSubtitle = "docs.credos.ru" } = content
+      const { title = "Бонусы и льготы", subtitle = "Мы ценим вклад каждого сотрудника", linkTitle = "Всё о бонусах", linkUrl = "https://docs.credos.ru", linkSubtitle = "docs.credos.ru" } = content
       
       return (
         <section id="benefits" className="py-24 relative overflow-hidden bg-background">
