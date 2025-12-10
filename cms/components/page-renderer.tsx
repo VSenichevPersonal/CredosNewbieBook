@@ -107,12 +107,12 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
         image: "https://www.credos.ru/local/templates/credos-new/images/first-img.svg",
       },
     },
-    about: { content: { description: "О компании", founded: 1993, employees: 65, offices: [] } },
-    departments: { content: { departments: [] } },
-    directions: { content: { directions: [] } },
-    mission: { content: { title: "Наша миссия", description: "Описание", values: [] } },
-    benefits: { content: { benefits: [] } },
-    regulations: { content: { codeOfConduct: [] } },
+    about: { content: { title: "О компании", subtitle: "Более 30 лет защищаем бизнес наших клиентов", founded: 1993, employees: 65, offices: [] } },
+    departments: { content: { title: "Структура и отделы", subtitle: "Познакомьтесь с командами, которые делают компанию успешной", departments: [] } },
+    directions: { content: { title: "Направления деятельности", subtitle: "Комплексные решения для защиты вашего бизнеса", directions: [] } },
+    mission: { content: { badge: "Наши ценности", title: "Наша миссия", description: "Описание", values: [] } },
+    benefits: { content: { title: "Бонусы и льготы", subtitle: "Мы ценим вклад каждого сотрудника", linkTitle: "Всё о бонусах", linkUrl: "https://docs.credos.ru", linkSubtitle: "docs.credos.ru", benefits: [] } },
+    regulations: { content: { title: "Корпоративная этика", subtitle: "Наши принципы и правила", cardTitle: "Кодекс этики", codeOfConduct: [] } },
   }
 
   useEffect(() => {
@@ -558,14 +558,18 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
               </div>
               
               <div className="flex justify-center">
-                  <Link href="https://docs.credos.ru" target="_blank" className="inline-block">
+                  <Link href={linkUrl} target="_blank" className="inline-block">
                     <Card className="glass border-white/10 p-8 hover:border-accent-cyan/30 transition-all duration-300 group flex items-center gap-4">
                         <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                              <Award className="w-6 h-6 text-accent-cyan" />
                         </div>
                         <div>
-                             <h3 className="text-xl font-semibold group-hover:text-accent-cyan transition-colors">Всё о бонусах</h3>
-                             <p className="text-sm text-muted-foreground">docs.credos.ru</p>
+                             <h3 className="text-xl font-semibold group-hover:text-accent-cyan transition-colors">
+                               <EditableText isEditing={isEditing} value={linkTitle} onChange={(v) => onChange({ ...content, linkTitle: v })} />
+                             </h3>
+                             <p className="text-sm text-muted-foreground">
+                               <EditableText isEditing={isEditing} value={linkSubtitle} onChange={(v) => onChange({ ...content, linkSubtitle: v })} />
+                             </p>
                         </div>
                         <ExternalLink className="w-5 h-5 ml-2 text-muted-foreground group-hover:text-accent-cyan" />
                     </Card>
@@ -578,7 +582,7 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "regulations": {
-      const { codeOfConduct = codeOfConductData } = content
+      const { codeOfConduct = codeOfConductData, title = "Корпоративная этика", subtitle = "Наши принципы и правила", cardTitle = "Кодекс этики" } = content
       const displayCode = codeOfConduct.length > 0 ? codeOfConduct : codeOfConductData
 
       return (
@@ -589,18 +593,24 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
-                  Корпоративная <span className="gradient-text-multi">этика</span>
+                  <EditableText isEditing={isEditing} value={title} onChange={(v) => onChange({ ...content, title: v })} />
                 </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
-                  Наши принципы и правила
-                </p>
+                <EditableText
+                  isEditing={isEditing}
+                  as="p"
+                  className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed"
+                  value={subtitle}
+                  onChange={(v) => onChange({ ...content, subtitle: v })}
+                />
               </div>
               <Card className="glass border-white/10 p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-purple/20 to-accent-pink/20 flex items-center justify-center">
                     <AlertCircle className="w-6 h-6 text-accent-purple" />
                   </div>
-                  <h3 className="text-2xl font-bold">Кодекс этики</h3>
+                  <h3 className="text-2xl font-bold">
+                    <EditableText isEditing={isEditing} value={cardTitle} onChange={(v) => onChange({ ...content, cardTitle: v })} />
+                  </h3>
                 </div>
                 <div className="space-y-3">
                   {displayCode.map((line: string, idx: number) => (

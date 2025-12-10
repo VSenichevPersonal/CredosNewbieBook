@@ -77,16 +77,21 @@ export function EditableBlock({
       onClick={() => selectBlock(blockId)}
     >
       {isEditing && (
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-          <BlockControls
-            isHidden={isHidden}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
-            onSettings={() => openPanelFor(blockId) || onSettings?.()}
-            onDelete={handleDelete}
-            onToggleVisibility={onToggleVisibility}
-          />
-        </div>
+        <>
+          <div className="absolute -top-3 left-4 bg-background border border-border text-muted-foreground text-[10px] px-1.5 rounded-sm font-mono z-10 shadow-sm pointer-events-none">
+            ID: {blockId.slice(0, 6)}
+          </div>
+          <div className="absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+            <BlockControls
+              isHidden={isHidden}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
+              onSettings={() => openPanelFor(blockId) || onSettings?.()}
+              onDelete={handleDelete}
+              onToggleVisibility={onToggleVisibility}
+            />
+          </div>
+        </>
       )}
       {children}
     </div>
