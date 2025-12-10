@@ -21,6 +21,7 @@ type PageRendererProps = {
 export function PageRenderer({ pageId, blocks }: PageRendererProps) {
   const { isEditing, selectedBlockId, openPanelFor, reorderBlocks, updateBlockContent } = useEditor()
   const [localBlocks, setLocalBlocks] = useState(blocks)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     setLocalBlocks(blocks)
@@ -45,9 +46,27 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
     setLocalBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, content } : b)))
   }
 
+  const addBlock = async (type: string) => {
+    setCreating(true)
+    try {
+      const res = await fetch("/api/cms/blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId, type, orderIndex: localBlocks.length, content: {} }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.id) {
+        throw new Error("Не удалось создать блок")
+      }
+      setLocalBlocks((prev) => [...prev, { id: json.id, pageId, type, orderIndex: prev.length, content: {} } as Block])
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <div className="space-y-12">
-      {localBlocks.map((block, index) => {
+      {localBlocks.map((block) => {
         const body = renderBlock(block, isEditing, (content) => {
           updateBlockContent(block.id, content)
           handleContentUpdate(block.id, content)
@@ -78,6 +97,20 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
           initialContent={localBlocks.find((b) => b.id === selectedBlockId)?.content}
           onContentChange={(content) => handleContentUpdate(selectedBlockId, content)}
         />
+      )}
+
+      {isEditing && (
+        <div className="container mx-auto px-4">
+          <div className="border rounded-lg p-4 bg-muted/40 flex items-center justify-between">
+            <div>
+              <p className="font-semibold">Добавить блок</p>
+              <p className="text-sm text-muted-foreground">Пока доступен тип «text» (простой текстовый блок).</p>
+            </div>
+            <Button onClick={() => addBlock("text")} disabled={creating}>
+              {creating ? "Создание..." : "Добавить текстовый блок"}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -297,6 +330,23 @@ function renderBlock(
                 </p>
               ))}
             </Card>
+          </div>
+        </section>
+      )
+    }
+
+    case "text": {
+      const { text = "Текстовый блок" } = content
+      return (
+        <section className="py-8">
+          <div className="container mx-auto px-4">
+            <EditableText
+              isEditing={isEditing}
+              as="div"
+              className="prose dark:prose-invert max-w-none"
+              value={text}
+              onChange={(value) => onChange({ ...content, text: value })}
+            />
           </div>
         </section>
       )

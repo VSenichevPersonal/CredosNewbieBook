@@ -8,7 +8,15 @@ import { Textarea } from "@/components/ui/textarea"
 
 import { useEditor } from "../hooks/use-editor"
 
-export function BlockPanel({ blockId, initialContent }: { blockId: string; initialContent: unknown }) {
+export function BlockPanel({
+  blockId,
+  initialContent,
+  onContentChange,
+}: {
+  blockId: string
+  initialContent: unknown
+  onContentChange?: (content: unknown) => void
+}) {
   const { openPanelFor, updateBlockContent } = useEditor()
   const [value, setValue] = useState(JSON.stringify(initialContent, null, 2))
   const [saving, setSaving] = useState(false)
@@ -18,6 +26,7 @@ export function BlockPanel({ blockId, initialContent }: { blockId: string; initi
     try {
       const parsed = JSON.parse(value)
       await updateBlockContent(blockId, parsed)
+      onContentChange?.(parsed)
     } finally {
       setSaving(false)
     }
