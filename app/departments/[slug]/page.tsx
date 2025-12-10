@@ -4,11 +4,11 @@ import { departments } from "@/lib/data"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, MapPin, User, MessageCircle, Info } from "lucide-react"
-import { TrendingUp, Megaphone, Settings, Code, Users, Calculator, Package, Scale, Building } from "lucide-react"
+import { TrendingUp, Megaphone, Settings, Code, Users, Calculator, Package, Scale, Building, Shield, Server, Workflow, Boxes, FileText } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 
-const iconMap = {
+const iconMap: Record<string, any> = {
   TrendingUp,
   Megaphone,
   Settings,
@@ -18,6 +18,11 @@ const iconMap = {
   Package,
   Scale,
   Building,
+  Shield,
+  Server,
+  Workflow,
+  Boxes,
+  FileText,
 }
 
 export async function generateStaticParams() {
@@ -50,7 +55,7 @@ export default async function DepartmentPage({ params }: { params: Promise<{ slu
     notFound()
   }
 
-  const Icon = iconMap[department.icon as keyof typeof iconMap]
+  const Icon = iconMap[department.icon] || Building
 
   return (
     <main className="min-h-screen bg-[#EBF5FB]">

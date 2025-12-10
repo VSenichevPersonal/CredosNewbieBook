@@ -8,7 +8,7 @@ import { Shield, FileText, Server, Workflow, Boxes } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 
-const iconMap = {
+const iconMap: Record<string, any> = {
   Shield,
   FileText,
   Server,
@@ -46,7 +46,7 @@ export default async function DirectionPage({ params }: { params: Promise<{ slug
     notFound()
   }
 
-  const Icon = iconMap[direction.icon as keyof typeof iconMap]
+  const Icon = iconMap[direction.icon] || Shield
 
   return (
     <main className="min-h-screen bg-[#EBF5FB]">
