@@ -1,28 +1,26 @@
 import { Navigation } from "@/components/navigation"
-import { HeroSection } from "@/components/sections/hero-section"
-import { AboutSection } from "@/components/sections/about-section"
-import { DepartmentsSection } from "@/components/sections/departments-section"
-import { DirectionsSection } from "@/components/sections/directions-section"
-import { MissionSection } from "@/components/sections/mission-section"
-import { BenefitsSection } from "@/components/sections/benefits-section"
-import { RegulationsSection } from "@/components/sections/regulations-section"
-import { SystemsSection } from "@/components/sections/systems-section"
-import { ResourcesSection } from "@/components/sections/resources-section"
 import { Footer } from "@/components/footer"
+import { getPageBySlug } from "@/cms/lib/queries"
+import { EditorProvider } from "@/cms/context/editor-context"
+import { PageRenderer } from "@/cms/components/page-renderer"
 
-export default function HomePage() {
+export default async function HomePage() {
+  const data = await getPageBySlug("home")
+
   return (
     <main className="min-h-screen">
       <Navigation />
-      <HeroSection />
-      <AboutSection />
-      <DepartmentsSection />
-      <DirectionsSection />
-      <MissionSection />
-      <BenefitsSection />
-      <RegulationsSection />
-      <SystemsSection />
-      <ResourcesSection />
+      <EditorProvider isEditing={false}>
+        <div className="space-y-12">
+          {data ? (
+            <PageRenderer pageId={data.page.id} blocks={data.blocks} />
+          ) : (
+            <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">
+              Данные не найдены в БД.
+            </div>
+          )}
+        </div>
+      </EditorProvider>
       <Footer />
     </main>
   )
