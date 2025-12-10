@@ -8,12 +8,22 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   const { id } = await context.params
   const body = await req.json().catch(() => null)
 
-  if (!body || typeof body.content === "undefined") {
-    return NextResponse.json({ error: "content is required" }, { status: 400 })
+  if (!body) {
+    return NextResponse.json({ error: "Body is required" }, { status: 400 })
   }
 
   try {
-    await db.update(blocks).set({ content: body.content, updatedAt: new Date() }).where(eq(blocks.id, id))
+    const updates: Record<string, unknown> = { updatedAt: new Date() }
+
+    if (typeof body.content !== "undefined") {
+      updates.content = body.content
+    }
+
+    if (typeof body.settings !== "undefined") {
+      updates.settings = body.settings
+    }
+
+    await db.update(blocks).set(updates).where(eq(blocks.id, id))
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error("PATCH /api/cms/blocks/[id] error:", err)

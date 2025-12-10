@@ -8,40 +8,47 @@ export function FirstDaySection() {
     {
       time: "09:00",
       icon: Users,
+      title: "Оформление документов",
+      description: "Общение с HR и подписание документов о приеме.",
+      tips: ["Возьмите с собой паспорт", "СНИЛС и трудовую книжку"],
+    },
+    {
+      time: "09:30",
+      icon: Users,
       title: "Знакомство с руководителем и наставником",
       description: "Встреча с непосредственным руководителем и наставником. Первое знакомство с командой.",
       tips: ["Возьмите с собой паспорт", "Приходите за 10 минут"],
     },
     {
-      time: "09:30",
+      time: "10:00",
       icon: MapPin,
       title: "Размещение на рабочем месте",
       description: "Наставник или HR разместит тебя на рабочем месте и проведет экскурсию по офису.",
       tips: ["Запоминайте расположение кухни", "Узнайте где туалеты и переговорные"],
     },
     {
-      time: "10:30",
+      time: "11:00",
       icon: Laptop,
       title: "Настройка рабочего места",
       description: "Получение компьютера, настройка доступов к системам, создание корпоративной почты.",
       tips: ["Придумайте надежный пароль", "Сохраните все учетные данные"],
     },
     {
-      time: "12:00",
+      time: "12:30",
       icon: BookOpen,
       title: "План адаптации",
       description: "Наставник познакомит с планом адаптации и порядком взаимодействия с другими службами компании.",
       tips: ["Делайте заметки", "Задавайте вопросы"],
     },
     {
-      time: "13:00",
+      time: "13:30",
       icon: Coffee,
       title: "Обеденный перерыв",
-      description: "Время для обеда и неформального общения с коллегами. Перерыв 1 час в промежутке с 12:00 до 15:00.",
+      description: "Время для обеда и неформального общения с коллегами. Перерыв 1 час.",
       tips: ["Пообедайте с коллегами", "Узнайте где поблизости кафе"],
     },
     {
-      time: "14:00",
+      time: "14:30",
       icon: MessageSquare,
       title: "Знакомство с процессами",
       description: "Разъяснение всех возникших вопросов, знакомство с рабочими процессами и инструментами.",
@@ -50,7 +57,6 @@ export function FirstDaySection() {
   ]
 
   const checklist = [
-    "Получить пропуск и ключи от офиса",
     "Настроить рабочий компьютер и доступы",
     "Создать корпоративную почту @credos.ru",
     "Подключиться к Битрикс24 (credos.bitrix24.ru)",
@@ -65,9 +71,10 @@ export function FirstDaySection() {
   const importantContacts = [
     {
       role: "HR-менеджер",
-      name: "Твой главный помощник",
+      name: "Лобанова Анна",
       location: "Офис Демонстрации, 27",
       description: "По всем вопросам адаптации и любым другим вопросам",
+      link: "https://credos.bitrix24.ru/company/personal/" 
     },
     {
       role: "Технический центр (IT)",
@@ -189,7 +196,11 @@ export function FirstDaySection() {
                     key={index}
                     className="p-4 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 hover:from-muted/70 hover:to-muted/50 transition-all duration-300"
                   >
-                    <div className="font-semibold text-accent-cyan mb-1">{contact.role}</div>
+                    <div className="font-semibold text-accent-cyan mb-1 flex justify-between items-center">
+                       {contact.role}
+                       {/* @ts-ignore */}
+                       {contact.link && <a href={contact.link} target="_blank" className="text-xs underline text-accent-purple">Bitrix</a>}
+                    </div>
                     <div className="text-sm text-foreground mb-1">{contact.name}</div>
                     <div className="text-xs text-muted-foreground mb-2">{contact.location}</div>
                     <div className="text-xs text-muted-foreground leading-relaxed">{contact.description}</div>

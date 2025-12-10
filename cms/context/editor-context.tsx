@@ -8,6 +8,7 @@ type EditorContextValue = {
   openPanelFor: (blockId: string | null) => void
   selectBlock: (blockId: string | null) => void
   updateBlockContent: (blockId: string, content: unknown) => Promise<boolean>
+  updateBlockSettings: (blockId: string, settings: unknown) => Promise<boolean>
   reorderBlocks: (pageId: string, orderedIds: string[]) => Promise<boolean>
   deleteBlock: (blockId: string) => Promise<boolean>
 }
@@ -36,10 +37,29 @@ export function EditorProvider({ children, isEditing = false }: { children: Reac
         console.error("Failed to update block:", await res.text())
         return false
       }
-      console.log("Block saved:", blockId)
+      console.log("Block content saved:", blockId)
       return true
     } catch (err) {
       console.error("Error updating block:", err)
+      return false
+    }
+  }, [])
+
+  const updateBlockSettings = useCallback(async (blockId: string, settings: unknown): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/cms/blocks/" + blockId, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      })
+      if (!res.ok) {
+        console.error("Failed to update block settings:", await res.text())
+        return false
+      }
+      console.log("Block settings saved:", blockId)
+      return true
+    } catch (err) {
+      console.error("Error updating block settings:", err)
       return false
     }
   }, [])
@@ -83,10 +103,11 @@ export function EditorProvider({ children, isEditing = false }: { children: Reac
       openPanelFor,
       selectBlock,
       updateBlockContent,
+      updateBlockSettings,
       reorderBlocks,
       deleteBlock,
     }),
-    [deleteBlock, isEditing, openPanelFor, reorderBlocks, selectedBlockId, selectBlock, updateBlockContent],
+    [deleteBlock, isEditing, openPanelFor, reorderBlocks, selectedBlockId, selectBlock, updateBlockContent, updateBlockSettings],
   )
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>

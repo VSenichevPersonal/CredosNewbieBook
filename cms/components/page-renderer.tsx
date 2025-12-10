@@ -33,6 +33,7 @@ import {
   Plane,
   Clock,
   AlertCircle,
+  ExternalLink,
 } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
@@ -43,6 +44,7 @@ import { useEditor } from "../hooks/use-editor"
 import { EditableBlock } from "./editable-block"
 import { BlockPanel } from "./block-panel"
 import { Block } from "../types"
+import { companyInfo, codeOfConduct as codeOfConductData } from "@/lib/data"
 
 const deptIconMap: Record<string, any> = {
   TrendingUp, Megaphone, Settings, Code, Users, Calculator, Package, Scale, Building,
@@ -70,11 +72,28 @@ type PageRendererProps = {
 }
 
 export function PageRenderer({ pageId, blocks }: PageRendererProps) {
-  const { isEditing, selectedBlockId, openPanelFor, reorderBlocks, updateBlockContent } = useEditor()
+  const { isEditing, selectedBlockId, openPanelFor, reorderBlocks, updateBlockContent, updateBlockSettings } = useEditor()
   const [localBlocks, setLocalBlocks] = useState(blocks)
   const [creating, setCreating] = useState(false)
   const [newBlockType, setNewBlockType] = useState<string>("text")
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const toggleBlockVisibility = useCallback(
+    async (blockId: string) => {
+      setLocalBlocks((prev) =>
+        prev.map((b) => {
+          if (b.id !== blockId) return b
+          const currentSettings = (b.settings as Record<string, unknown>) || {}
+          const newHidden = !currentSettings.hidden
+          const newSettings = { ...currentSettings, hidden: newHidden }
+          updateBlockSettings(blockId, newSettings)
+          return { ...b, settings: newSettings }
+        }),
+      )
+    },
+    [updateBlockSettings],
+  )
+
 
   const presets: Record<string, { content: any }> = {
     text: { content: { text: "Текстовый блок" } },
@@ -88,7 +107,7 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
         image: "https://www.credos.ru/local/templates/credos-new/images/first-img.svg",
       },
     },
-    about: { content: { description: "О компании", founded: 1993, employees: 59, offices: [] } },
+    about: { content: { description: "О компании", founded: 1993, employees: 65, offices: [] } },
     departments: { content: { departments: [] } },
     directions: { content: { directions: [] } },
     mission: { content: { title: "Наша миссия", description: "Описание", values: [] } },
@@ -157,17 +176,27 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
       {localBlocks.map((block) => {
         const body = renderBlock(block, isEditing, (content) => handleContentUpdate(block.id, content))
 
-        if (!isEditing) return <div key={block.id}>{body}</div>
+        const blockSettings = (block.settings as Record<string, unknown>) || {}
+        const isBlockHidden = !!blockSettings.hidden
+
+        // В режиме просмотра пропускаем скрытые блоки
+        if (!isEditing) {
+          if (isBlockHidden) return null
+          return <div key={block.id}>{body}</div>
+        }
 
         return (
           <EditableBlock
             key={block.id}
             blockId={block.id}
+            blockType={block.type}
             pageId={pageId}
+            isHidden={isBlockHidden}
             onMoveUp={() => move(block.id, -1)}
             onMoveDown={() => move(block.id, 1)}
             onSettings={() => openPanelFor(block.id)}
             onDelete={() => setLocalBlocks((prev) => prev.filter((b) => b.id !== block.id))}
+            onToggleVisibility={() => toggleBlockVisibility(block.id)}
           >
             {body}
           </EditableBlock>
@@ -285,8 +314,10 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "about": {
-      const { founded, employees, offices = [], description = "" } = content
-      const yearsInBusiness = new Date().getFullYear() - (founded || 1993)
+      const { founded, employees, offices = [], description = "", title = "О компании", subtitle = "" } = content
+      const yearsInBusiness = new Date().getFullYear() - (companyInfo.founded || 1993)
+      const history = (companyInfo as any).history || []
+      
       return (
         <section id="about" className="py-24 relative overflow-hidden bg-background">
           <div className="absolute top-20 left-10 w-96 h-96 rounded-full bg-gradient-to-br from-accent-cyan/10 to-accent-purple/10 blur-3xl" />
@@ -295,18 +326,19 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
-                  О <span className="gradient-text-multi">компании</span>
+                  <EditableText isEditing={isEditing} value={title} onChange={(v) => onChange({ ...content, title: v })} />
                 </h2>
                 <EditableText
                   isEditing={isEditing}
                   as="p"
                   className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed"
-                  value={description || "Более " + yearsInBusiness + " лет защищаем бизнес наших клиентов"}
-                  onChange={(v) => onChange({ ...content, description: v })}
+                  value={subtitle || description || "Более " + yearsInBusiness + " лет защищаем бизнес наших клиентов"}
+                  onChange={(v) => onChange({ ...content, subtitle: v })}
                 />
               </div>
+
               <div className="grid md:grid-cols-2 gap-8 mb-12">
-                <Card className="glass border-white/10 p-8 hover:border-accent-cyan/30 transition-all duration-300">
+                 <Card className="glass border-white/10 p-8 hover:border-accent-cyan/30 transition-all duration-300">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center flex-shrink-0">
                       <Calendar className="w-6 h-6 text-accent-cyan" />
@@ -314,7 +346,7 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
                     <div>
                       <h3 className="text-xl font-semibold mb-2">История</h3>
                       <p className="text-muted-foreground leading-relaxed">
-                        Компания основана в {founded || 1993} году. За это время мы выросли до одного из ведущих интеграторов решений ИБ.
+                        Компания основана в {companyInfo.founded || 1993} году.
                       </p>
                     </div>
                   </div>
@@ -327,12 +359,37 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
                     <div>
                       <h3 className="text-xl font-semibold mb-2">Команда</h3>
                       <p className="text-muted-foreground leading-relaxed">
-                        В компании работает {employees || 59} специалистов: инженеры, разработчики, менеджеры и эксперты.
+                        В компании работает {companyInfo.employees || 65} специалистов.
                       </p>
                     </div>
                   </div>
                 </Card>
               </div>
+
+              {history.length > 0 && (
+                 <div className="mt-16 relative">
+                    <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-gradient-to-b from-accent-cyan to-accent-purple opacity-30 hidden md:block" />
+                    <div className="space-y-12">
+                      {history.map((item: any, idx: number) => (
+                        <div key={idx} className={`flex items-center gap-8 ${idx % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"} flex-col`}>
+                          <div className="flex-1 text-right md:text-right" style={{ textAlign: idx % 2 === 0 ? 'right' : 'left' } as any}>
+                             {idx % 2 !== 0 && <div className="hidden md:block" />}
+                             <div className={`hidden md:block ${idx % 2 === 0 ? "mr-auto" : "ml-auto"}`}></div>
+                             <div className={idx % 2 === 0 ? "md:text-right" : "md:text-left"}>
+                               <span className="text-3xl font-bold gradient-text-cyan-purple">{item.year}</span>
+                             </div>
+                          </div>
+                          <div className="relative z-10 w-4 h-4 rounded-full bg-accent-cyan ring-4 ring-background hidden md:block" />
+                          <div className="flex-1">
+                             <Card className="p-6 glass border-white/10">
+                               <p className="text-muted-foreground">{item.text}</p>
+                             </Card>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                 </div>
+              )}
             </div>
           </div>
         </section>
@@ -340,7 +397,7 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "departments": {
-      const { departments = [] } = content
+      const { departments = [], title = "Структура и отделы", subtitle = "Познакомьтесь с командами, которые делают компанию успешной" } = content
       return (
         <section id="departments" className="py-24 bg-gradient-to-b from-background via-muted/30 to-background relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-accent-purple/5 to-transparent rounded-full blur-3xl" />
@@ -349,11 +406,15 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
-                  Структура и <span className="gradient-text-cyan-purple">отделы</span>
+                  <EditableText isEditing={isEditing} value={title} onChange={(v) => onChange({ ...content, title: v })} />
                 </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
-                  Познакомьтесь с командами, которые делают компанию успешной
-                </p>
+                <EditableText
+                  isEditing={isEditing}
+                  as="p"
+                  className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed"
+                  value={subtitle}
+                  onChange={(v) => onChange({ ...content, subtitle: v })}
+                />
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {departments.map((dept: any, index: number) => {
@@ -384,16 +445,22 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "directions": {
-      const { directions = [] } = content
+      const { directions = [], title = "Направления деятельности", subtitle = "Комплексные решения для защиты вашего бизнеса" } = content
       return (
         <section id="directions" className="py-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">Направления деятельности</h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
-                  Комплексные решения для защиты вашего бизнеса
-                </p>
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
+                  <EditableText isEditing={isEditing} value={title} onChange={(v) => onChange({ ...content, title: v })} />
+                </h2>
+                <EditableText
+                  isEditing={isEditing}
+                  as="p"
+                  className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed"
+                  value={subtitle}
+                  onChange={(v) => onChange({ ...content, subtitle: v })}
+                />
               </div>
               <div className="space-y-6">
                 {directions.map((dir: any, index: number) => {
@@ -416,9 +483,6 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
                               {(dir.services || []).length > 3 && <span className="text-xs px-3 py-1 bg-muted rounded-full text-muted-foreground">+{dir.services.length - 3} еще</span>}
                             </div>
                           </div>
-                          <div className="flex items-center text-accent-cyan font-medium group-hover:gap-2 transition-all self-center">
-                            Узнать больше <ArrowRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
-                          </div>
                         </div>
                       </Card>
                     </Link>
@@ -432,7 +496,7 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "mission": {
-      const { title = "Наша миссия", description = "", values = [] } = content
+      const { title = "Наша миссия", description = "", values = [], badge = "Наши ценности" } = content
       return (
         <section id="mission" className="py-24 bg-gradient-to-br from-primary/5 to-accent-cyan/5">
           <div className="container mx-auto px-4">
@@ -440,9 +504,11 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
               <div className="text-center mb-16">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4">
                   <Target className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">Наши ценности</span>
+                  <EditableText isEditing={isEditing} className="text-sm font-medium text-primary" value={badge} onChange={(v) => onChange({ ...content, badge: v })} />
                 </div>
-                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-balance">{title}</h2>
+                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
+                  <EditableText isEditing={isEditing} value={title} onChange={(v) => onChange({ ...content, title: v })} />
+                </h2>
                 <EditableText isEditing={isEditing} as="p" className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty leading-relaxed" value={description} onChange={(v) => onChange({ ...content, description: v })} />
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -468,7 +534,10 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "benefits": {
-      const { benefits = [] } = content
+      // Use placeholder content if no benefits (since user requested just a link)
+      // or check if benefits are empty and show the link logic
+      const { benefits = [], title = "Бонусы и льготы", subtitle = "Мы ценим вклад каждого сотрудника", linkTitle = "Всё о бонусах", linkUrl = "https://docs.credos.ru", linkSubtitle = "docs.credos.ru" } = content
+      
       return (
         <section id="benefits" className="py-24 relative overflow-hidden bg-background">
           <div className="absolute top-20 left-10 w-96 h-96 rounded-full bg-gradient-to-br from-accent-purple/10 to-accent-pink/10 blur-3xl" />
@@ -477,25 +546,30 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
-                  Бонусы <span className="gradient-text-multi">и льготы</span>
+                  <EditableText isEditing={isEditing} value={title} onChange={(v) => onChange({ ...content, title: v })} />
                 </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
-                  Мы ценим вклад каждого сотрудника
-                </p>
+                <EditableText
+                  isEditing={isEditing}
+                  as="p"
+                  className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed"
+                  value={subtitle}
+                  onChange={(v) => onChange({ ...content, subtitle: v })}
+                />
               </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                {benefits.map((benefit: any, idx: number) => {
-                  const Icon = benefitIconMap[benefit.icon] || Award
-                  return (
-                    <Card key={idx} className="glass border-white/10 p-6 hover:border-accent-cyan/30 transition-all duration-300 group">
-                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                        <Icon className="w-6 h-6 text-accent-cyan" />
-                      </div>
-                      <h3 className="text-lg font-semibold mb-2">{benefit.title}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{benefit.description}</p>
+              
+              <div className="flex justify-center">
+                  <Link href="https://docs.credos.ru" target="_blank" className="inline-block">
+                    <Card className="glass border-white/10 p-8 hover:border-accent-cyan/30 transition-all duration-300 group flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                             <Award className="w-6 h-6 text-accent-cyan" />
+                        </div>
+                        <div>
+                             <h3 className="text-xl font-semibold group-hover:text-accent-cyan transition-colors">Всё о бонусах</h3>
+                             <p className="text-sm text-muted-foreground">docs.credos.ru</p>
+                        </div>
+                        <ExternalLink className="w-5 h-5 ml-2 text-muted-foreground group-hover:text-accent-cyan" />
                     </Card>
-                  )
-                })}
+                  </Link>
               </div>
             </div>
           </div>
@@ -504,7 +578,9 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
     }
 
     case "regulations": {
-      const { codeOfConduct = [] } = content
+      const { codeOfConduct = codeOfConductData } = content
+      const displayCode = codeOfConduct.length > 0 ? codeOfConduct : codeOfConductData
+
       return (
         <section id="regulations" className="py-24 relative overflow-hidden bg-muted/30">
           <div className="absolute top-20 right-10 w-96 h-96 rounded-full bg-gradient-to-br from-accent-cyan/10 to-accent-purple/10 blur-3xl" />
@@ -513,10 +589,10 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
-                  Регламенты <span className="gradient-text-multi">работы</span>
+                  Корпоративная <span className="gradient-text-multi">этика</span>
                 </h2>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
-                  Основные правила и процессы
+                  Наши принципы и правила
                 </p>
               </div>
               <Card className="glass border-white/10 p-8">
@@ -524,10 +600,10 @@ function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) 
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-purple/20 to-accent-pink/20 flex items-center justify-center">
                     <AlertCircle className="w-6 h-6 text-accent-purple" />
                   </div>
-                  <h3 className="text-2xl font-bold">Принципы</h3>
+                  <h3 className="text-2xl font-bold">Кодекс этики</h3>
                 </div>
                 <div className="space-y-3">
-                  {codeOfConduct.map((line: string, idx: number) => (
+                  {displayCode.map((line: string, idx: number) => (
                     <p key={idx} className="text-muted-foreground leading-relaxed flex items-start gap-2">
                       <span className="text-accent-cyan mt-1">•</span>
                       <span>{line}</span>
