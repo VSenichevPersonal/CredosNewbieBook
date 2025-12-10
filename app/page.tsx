@@ -1,4 +1,5 @@
-export const dynamic = force-dynamic
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { getPageBySlug } from "@/cms/lib/queries"
