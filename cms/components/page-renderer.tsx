@@ -22,6 +22,37 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
   const { isEditing, selectedBlockId, openPanelFor, reorderBlocks, updateBlockContent } = useEditor()
   const [localBlocks, setLocalBlocks] = useState(blocks)
   const [creating, setCreating] = useState(false)
+  const [newBlockType, setNewBlockType] = useState<string>("text")
+
+  const presets = useMemo(
+    () => ({
+      text: { content: { text: "Текстовый блок" } },
+      hero: {
+        content: {
+          eyebrow: "Добро пожаловать в Кредо-С",
+          title: "Ваш путеводитель по компании",
+          description:
+            "Здесь вы найдете всю необходимую информацию о структуре компании, процессах работы, корпоративной культуре и полезных ресурсах для успешного старта",
+          primaryCta: { label: "Начать знакомство", href: "/first-day" },
+          secondaryCta: { label: "Посмотреть отделы", href: "#departments" },
+          image: "https://www.credos.ru/local/templates/credos-new/images/first-img.svg",
+        },
+      },
+      about: { content: { description: "О компании", founded: null, employees: null, offices: [] } },
+      departments: { content: { departments: [] } },
+      directions: { content: { directions: [] } },
+      mission: {
+        content: {
+          title: "Наша миссия",
+          description: "Кратко о миссии",
+          values: [{ title: "Ценность 1", description: "Описание" }],
+        },
+      },
+      benefits: { content: { benefits: [] } },
+      regulations: { content: { codeOfConduct: ["Принцип 1"] } },
+    }),
+    [],
+  )
 
   useEffect(() => {
     setLocalBlocks(blocks)
@@ -49,16 +80,20 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
   const addBlock = async (type: string) => {
     setCreating(true)
     try {
+      const preset = presets[type as keyof typeof presets] ?? { content: {} }
       const res = await fetch("/api/cms/blocks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageId, type, orderIndex: localBlocks.length, content: {} }),
+        body: JSON.stringify({ pageId, type, orderIndex: localBlocks.length, content: preset.content ?? {} }),
       })
       const json = await res.json().catch(() => null)
       if (!res.ok || !json?.id) {
         throw new Error("Не удалось создать блок")
       }
-      setLocalBlocks((prev) => [...prev, { id: json.id, pageId, type, orderIndex: prev.length, content: {} } as Block])
+      setLocalBlocks((prev) => [
+        ...prev,
+        { id: json.id, pageId, type, orderIndex: prev.length, content: preset.content ?? {} } as Block,
+      ])
     } finally {
       setCreating(false)
     }
@@ -101,15 +136,34 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
 
       {isEditing && (
         <div className="container mx-auto px-4">
-          <div className="border rounded-lg p-4 bg-muted/40 flex items-center justify-between">
+          <form
+            className="border rounded-lg p-4 bg-muted/40 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            onSubmit={(e) => {
+              e.preventDefault()
+              addBlock(newBlockType)
+            }}
+          >
             <div>
               <p className="font-semibold">Добавить блок</p>
-              <p className="text-sm text-muted-foreground">Пока доступен тип «text» (простой текстовый блок).</p>
+              <p className="text-sm text-muted-foreground">Выберите тип блока и нажмите «Добавить».</p>
             </div>
-            <Button onClick={() => addBlock("text")} disabled={creating}>
-              {creating ? "Создание..." : "Добавить текстовый блок"}
-            </Button>
-          </div>
+            <div className="flex gap-2 items-center">
+              <select
+                className="border rounded-md px-2 py-1 bg-background"
+                value={newBlockType}
+                onChange={(e) => setNewBlockType(e.target.value)}
+              >
+                {Object.keys(presets).map((key) => (
+                  <option key={key} value={key}>
+                    {key}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit" disabled={creating}>
+                {creating ? "Создание..." : "Добавить"}
+              </Button>
+            </div>
+          </form>
         </div>
       )}
     </div>
