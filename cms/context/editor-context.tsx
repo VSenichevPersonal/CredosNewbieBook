@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client"
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
@@ -8,9 +7,9 @@ type EditorContextValue = {
   selectedBlockId: string | null
   openPanelFor: (blockId: string | null) => void
   selectBlock: (blockId: string | null) => void
-  updateBlockContent: (blockId: string, content: unknown) => Promise<void>
-  reorderBlocks: (pageId: string, orderedIds: string[]) => Promise<void>
-  deleteBlock: (blockId: string) => Promise<void>
+  updateBlockContent: (blockId: string, content: unknown) => Promise<boolean>
+  reorderBlocks: (pageId: string, orderedIds: string[]) => Promise<boolean>
+  deleteBlock: (blockId: string) => Promise<boolean>
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null)
@@ -26,24 +25,55 @@ export function EditorProvider({ children, isEditing = false }: { children: Reac
     setSelectedBlockId(blockId)
   }, [])
 
-  const updateBlockContent = useCallback(async (blockId: string, content: unknown) => {
-    await fetch(`/api/cms/blocks/${blockId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    })
+  const updateBlockContent = useCallback(async (blockId: string, content: unknown): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/cms/blocks/" + blockId, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      })
+      if (!res.ok) {
+        console.error("Failed to update block:", await res.text())
+        return false
+      }
+      console.log("Block saved:", blockId)
+      return true
+    } catch (err) {
+      console.error("Error updating block:", err)
+      return false
+    }
   }, [])
 
-  const reorderBlocks = useCallback(async (pageId: string, orderedIds: string[]) => {
-    await fetch(`/api/cms/blocks/reorder`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pageId, orderedIds }),
-    })
+  const reorderBlocks = useCallback(async (pageId: string, orderedIds: string[]): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/cms/blocks/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId, orderedIds }),
+      })
+      if (!res.ok) {
+        console.error("Failed to reorder blocks:", await res.text())
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error("Error reordering blocks:", err)
+      return false
+    }
   }, [])
 
-  const deleteBlock = useCallback(async (blockId: string) => {
-    await fetch(`/api/cms/blocks/${blockId}`, { method: "DELETE" })
+  const deleteBlock = useCallback(async (blockId: string): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/cms/blocks/" + blockId, { method: "DELETE" })
+      if (!res.ok) {
+        console.error("Failed to delete block:", await res.text())
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error("Error deleting block:", err)
+      return false
+    }
   }, [])
 
   const value = useMemo<EditorContextValue>(
