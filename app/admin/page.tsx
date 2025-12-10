@@ -2,8 +2,17 @@ import { getPageBySlug } from "@/cms/lib/queries"
 import { EditorProvider } from "@/cms/context/editor-context"
 import { PageRenderer } from "@/cms/components/page-renderer"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function AdminPage() {
-  const data = await getPageBySlug("home")
+  let data = null
+
+  try {
+    data = await getPageBySlug("home")
+  } catch (error) {
+    console.error("Failed to load page data for /admin:", error)
+  }
 
   return (
     <EditorProvider isEditing>
