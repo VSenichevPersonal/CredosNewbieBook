@@ -1,8 +1,39 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import Image from "next/image"
+import {
+  ArrowRight,
+  ChevronDown,
+  Sparkles,
+  TrendingUp,
+  Megaphone,
+  Settings,
+  Code,
+  Users,
+  Calculator,
+  Package,
+  Scale,
+  Building,
+  Shield,
+  FileText,
+  Server,
+  Workflow,
+  Boxes,
+  Target,
+  GraduationCap,
+  Dumbbell,
+  Heart,
+  PartyPopper,
+  DollarSign,
+  Calendar,
+  Award,
+  Coffee,
+  Plane,
+  Clock,
+  AlertCircle,
+} from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,6 +43,26 @@ import { useEditor } from "../hooks/use-editor"
 import { EditableBlock } from "./editable-block"
 import { BlockPanel } from "./block-panel"
 import { Block } from "../types"
+
+const deptIconMap: Record<string, any> = {
+  TrendingUp, Megaphone, Settings, Code, Users, Calculator, Package, Scale, Building,
+}
+const dirIconMap: Record<string, any> = { Shield, FileText, Server, Workflow, Boxes }
+const benefitIconMap: Record<string, any> = {
+  GraduationCap, Dumbbell, Heart, PartyPopper, DollarSign, Calendar, Award, Coffee, Plane, Clock,
+}
+
+const gradientMap = [
+  "from-accent-cyan/40 to-accent-purple/40",
+  "from-accent-purple/40 to-accent-pink/40",
+  "from-accent-pink/40 to-accent-orange/40",
+  "from-accent-orange/40 to-accent-cyan/40",
+  "from-accent-cyan/40 to-accent-pink/40",
+  "from-accent-purple/40 to-accent-orange/40",
+  "from-accent-pink/40 to-accent-cyan/40",
+  "from-accent-orange/40 to-accent-purple/40",
+  "from-accent-cyan/40 to-accent-orange/40",
+]
 
 type PageRendererProps = {
   pageId: string
@@ -23,36 +74,27 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
   const [localBlocks, setLocalBlocks] = useState(blocks)
   const [creating, setCreating] = useState(false)
   const [newBlockType, setNewBlockType] = useState<string>("text")
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const presets = useMemo(
-    () => ({
-      text: { content: { text: "Текстовый блок" } },
-      hero: {
-        content: {
-          eyebrow: "Добро пожаловать в Кредо-С",
-          title: "Ваш путеводитель по компании",
-          description:
-            "Здесь вы найдете всю необходимую информацию о структуре компании, процессах работы, корпоративной культуре и полезных ресурсах для успешного старта",
-          primaryCta: { label: "Начать знакомство", href: "/first-day" },
-          secondaryCta: { label: "Посмотреть отделы", href: "#departments" },
-          image: "https://www.credos.ru/local/templates/credos-new/images/first-img.svg",
-        },
+  const presets: Record<string, { content: any }> = {
+    text: { content: { text: "Текстовый блок" } },
+    hero: {
+      content: {
+        eyebrow: "Добро пожаловать в Кредо-С",
+        title: "Ваш путеводитель по компании",
+        description: "Здесь вы найдете информацию о структуре компании",
+        primaryCta: { label: "Начать знакомство", href: "/first-day" },
+        secondaryCta: { label: "Посмотреть отделы", href: "#departments" },
+        image: "https://www.credos.ru/local/templates/credos-new/images/first-img.svg",
       },
-      about: { content: { description: "О компании", founded: null, employees: null, offices: [] } },
-      departments: { content: { departments: [] } },
-      directions: { content: { directions: [] } },
-      mission: {
-        content: {
-          title: "Наша миссия",
-          description: "Кратко о миссии",
-          values: [{ title: "Ценность 1", description: "Описание" }],
-        },
-      },
-      benefits: { content: { benefits: [] } },
-      regulations: { content: { codeOfConduct: ["Принцип 1"] } },
-    }),
-    [],
-  )
+    },
+    about: { content: { description: "О компании", founded: 1993, employees: 59, offices: [] } },
+    departments: { content: { departments: [] } },
+    directions: { content: { directions: [] } },
+    mission: { content: { title: "Наша миссия", description: "Описание", values: [] } },
+    benefits: { content: { benefits: [] } },
+    regulations: { content: { codeOfConduct: [] } },
+  }
 
   useEffect(() => {
     setLocalBlocks(blocks)
@@ -67,49 +109,55 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
       const next = [...prev]
       const [item] = next.splice(idx, 1)
       next.splice(target, 0, item)
-      const orderedIds = next.map((b) => b.id)
-      reorderBlocks(pageId, orderedIds).catch(console.error)
+      reorderBlocks(pageId, next.map((b) => b.id)).catch(console.error)
       return next
     })
   }
 
-  const handleContentUpdate = (blockId: string, content: unknown) => {
-    setLocalBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, content } : b)))
-  }
+  // Автосохранение с debounce
+  const saveBlock = useCallback(
+    async (blockId: string, content: unknown) => {
+      await updateBlockContent(blockId, content)
+    },
+    [updateBlockContent],
+  )
+
+  const handleContentUpdate = useCallback(
+    (blockId: string, content: unknown) => {
+      setLocalBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, content } : b)))
+
+      // Debounced save
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => {
+        saveBlock(blockId, content)
+      }, 800)
+    },
+    [saveBlock],
+  )
 
   const addBlock = async (type: string) => {
     setCreating(true)
     try {
-      const preset = presets[type as keyof typeof presets] ?? { content: {} }
+      const preset = presets[type] ?? { content: {} }
       const res = await fetch("/api/cms/blocks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageId, type, orderIndex: localBlocks.length, content: preset.content ?? {} }),
+        body: JSON.stringify({ pageId, type, orderIndex: localBlocks.length, content: preset.content }),
       })
       const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.id) {
-        throw new Error("Не удалось создать блок")
-      }
-      setLocalBlocks((prev) => [
-        ...prev,
-        { id: json.id, pageId, type, orderIndex: prev.length, content: preset.content ?? {} } as Block,
-      ])
+      if (!res.ok || !json?.id) throw new Error("Не удалось создать блок")
+      setLocalBlocks((prev) => [...prev, { id: json.id, pageId, type, orderIndex: prev.length, content: preset.content } as Block])
     } finally {
       setCreating(false)
     }
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-0">
       {localBlocks.map((block) => {
-        const body = renderBlock(block, isEditing, (content) => {
-          updateBlockContent(block.id, content)
-          handleContentUpdate(block.id, content)
-        })
+        const body = renderBlock(block, isEditing, (content) => handleContentUpdate(block.id, content))
 
-        if (!isEditing) {
-          return <div key={block.id}>{body}</div>
-        }
+        if (!isEditing) return <div key={block.id}>{body}</div>
 
         return (
           <EditableBlock
@@ -135,17 +183,14 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
       )}
 
       {isEditing && (
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 py-8">
           <form
             className="border rounded-lg p-4 bg-muted/40 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-            onSubmit={(e) => {
-              e.preventDefault()
-              addBlock(newBlockType)
-            }}
+            onSubmit={(e) => { e.preventDefault(); addBlock(newBlockType) }}
           >
             <div>
               <p className="font-semibold">Добавить блок</p>
-              <p className="text-sm text-muted-foreground">Выберите тип блока и нажмите «Добавить».</p>
+              <p className="text-sm text-muted-foreground">Выберите тип блока</p>
             </div>
             <div className="flex gap-2 items-center">
               <select
@@ -154,9 +199,7 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
                 onChange={(e) => setNewBlockType(e.target.value)}
               >
                 {Object.keys(presets).map((key) => (
-                  <option key={key} value={key}>
-                    {key}
-                  </option>
+                  <option key={key} value={key}>{key}</option>
                 ))}
               </select>
               <Button type="submit" disabled={creating}>
@@ -170,11 +213,7 @@ export function PageRenderer({ pageId, blocks }: PageRendererProps) {
   )
 }
 
-function renderBlock(
-  block: Block,
-  isEditing: boolean,
-  onChange: (content: any) => void,
-): JSX.Element {
+function renderBlock(block: Block, isEditing: boolean, onChange: (content: any) => void): JSX.Element {
   const content = (block.content as Record<string, any>) || {}
 
   switch (block.type) {
@@ -182,53 +221,63 @@ function renderBlock(
       const {
         eyebrow = "Добро пожаловать в Кредо-С",
         title = "Ваш путеводитель по компании",
-        description = "Здесь вы найдете всю необходимую информацию о структуре компании, процессах работы, корпоративной культуре и полезных ресурсах для успешного старта",
+        description = "Здесь вы найдете всю необходимую информацию",
         primaryCta = { label: "Начать знакомство", href: "/first-day" },
         secondaryCta = { label: "Посмотреть отделы", href: "#departments" },
         image = "https://www.credos.ru/local/templates/credos-new/images/first-img.svg",
       } = content
 
       return (
-        <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden mesh-gradient noise-texture">
-          <div className="container mx-auto px-4 relative z-10 py-16">
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden mesh-gradient noise-texture">
+          {/* Floating shapes */}
+          <div className="absolute top-20 left-10 w-96 h-96 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 blur-3xl animate-float" />
+          <div className="absolute top-40 right-20 w-72 h-72 rounded-full bg-gradient-to-br from-accent-pink/20 to-accent-orange/20 blur-3xl animate-float-delayed" />
+          <div className="absolute bottom-20 left-1/4 w-80 h-80 rounded-full bg-gradient-to-br from-accent-purple/15 to-accent-cyan/15 blur-3xl animate-float" style={{ animationDelay: "2s" }} />
+          <div className="absolute top-1/4 right-1/3 w-32 h-32 border-2 border-accent-cyan/20 rounded-2xl rotate-12 animate-float" />
+          <div className="absolute bottom-1/3 left-1/4 w-24 h-24 border-2 border-accent-purple/20 rounded-full animate-float-delayed" />
+
+          <div className="container mx-auto px-4 relative z-10 pt-20">
             <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
               <div className="space-y-8">
                 <div className="inline-flex items-center gap-2 px-5 py-2.5 glass rounded-full text-sm font-medium mb-4 shadow-lg">
-                  <span className="text-foreground">{eyebrow}</span>
+                  <Sparkles className="w-4 h-4 text-accent-cyan" />
+                  <EditableText isEditing={isEditing} value={eyebrow} onChange={(v) => onChange({ ...content, eyebrow: v })} className="text-foreground" />
                 </div>
 
-                <EditableText
-                  isEditing={isEditing}
-                  as="h1"
-                  className="text-4xl md:text-6xl font-bold leading-tight text-balance"
-                  value={title}
-                  onChange={(text) => onChange({ ...content, title: text })}
-                />
+                <h1 className="text-4xl md:text-6xl font-bold leading-tight text-balance">
+                  <EditableText isEditing={isEditing} value={title} onChange={(v) => onChange({ ...content, title: v })} />
+                </h1>
 
                 <EditableText
                   isEditing={isEditing}
                   as="p"
                   className="text-lg md:text-xl text-muted-foreground max-w-2xl text-pretty leading-relaxed"
                   value={description}
-                  onChange={(text) => onChange({ ...content, description: text })}
+                  onChange={(v) => onChange({ ...content, description: v })}
                 />
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                  <Button asChild className="bg-[#00BFFF] hover:bg-[#00A8E6] text-white">
-                    <Link href={primaryCta?.href ?? "#"}>{primaryCta?.label ?? "Начать"}</Link>
-                  </Button>
-                  <Button variant="outline" className="border-2 border-[#00BFFF] text-[#00BFFF]" asChild>
-                    <Link href={secondaryCta?.href ?? "#"}>{secondaryCta?.label ?? "Подробнее"}</Link>
+                  <Link
+                    href={primaryCta?.href ?? "#"}
+                    className="bg-[#00BFFF] hover:bg-[#00A8E6] text-white font-semibold text-base px-8 h-12 shadow-xl shadow-[#00BFFF]/40 transition-all duration-300 hover:shadow-2xl hover:shadow-[#00BFFF]/60 hover:scale-105 inline-flex items-center justify-center rounded-md"
+                  >
+                    {primaryCta?.label ?? "Начать"}
+                  </Link>
+                  <Button size="lg" variant="outline" className="border-2 border-[#00BFFF] text-[#00BFFF] hover:bg-[#00BFFF] hover:text-white font-semibold text-base px-8 h-12 transition-all duration-300 hover:scale-105 bg-white/90" asChild>
+                    <a href={secondaryCta?.href ?? "#"}>{secondaryCta?.label ?? "Подробнее"}</a>
                   </Button>
                 </div>
               </div>
 
               <div className="relative flex items-center justify-center lg:justify-end">
                 <div className="relative w-full max-w-[500px] aspect-square">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={image} alt={title} className="object-contain animate-float w-full h-full" />
+                  <Image src={image} alt={title} fill className="object-contain animate-float" priority />
                 </div>
               </div>
+            </div>
+
+            <div className="pt-16 animate-bounce text-center">
+              <ChevronDown className="w-6 h-6 mx-auto text-muted-foreground" />
             </div>
           </div>
         </section>
@@ -237,40 +286,53 @@ function renderBlock(
 
     case "about": {
       const { founded, employees, offices = [], description = "" } = content
+      const yearsInBusiness = new Date().getFullYear() - (founded || 1993)
       return (
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl font-bold mb-4">О компании</h2>
-              <EditableText
-                isEditing={isEditing}
-                as="p"
-                className="text-lg text-muted-foreground"
-                value={description}
-                onChange={(text) => onChange({ ...content, description: text })}
-              />
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="p-6 text-center">
-                <p className="text-sm text-muted-foreground">Основана</p>
-                <p className="text-2xl font-semibold">{founded ?? "—"}</p>
-              </Card>
-              <Card className="p-6 text-center">
-                <p className="text-sm text-muted-foreground">Сотрудников</p>
-                <p className="text-2xl font-semibold">{employees ?? "—"}</p>
-              </Card>
-              <Card className="p-6">
-                <p className="text-sm text-muted-foreground mb-2">Офисы</p>
-                <ul className="space-y-1 text-sm text-foreground">
-                  {Array.isArray(offices) &&
-                    offices.map((o: any, idx: number) => (
-                      <li key={idx} className="flex gap-2">
-                        <span>•</span>
-                        <span>{o.address}</span>
-                      </li>
-                    ))}
-                </ul>
-              </Card>
+        <section id="about" className="py-24 relative overflow-hidden bg-background">
+          <div className="absolute top-20 left-10 w-96 h-96 rounded-full bg-gradient-to-br from-accent-cyan/10 to-accent-purple/10 blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-80 h-80 rounded-full bg-gradient-to-br from-accent-orange/10 to-accent-pink/10 blur-3xl" />
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
+                  О <span className="gradient-text-multi">компании</span>
+                </h2>
+                <EditableText
+                  isEditing={isEditing}
+                  as="p"
+                  className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed"
+                  value={description || "Более " + yearsInBusiness + " лет защищаем бизнес наших клиентов"}
+                  onChange={(v) => onChange({ ...content, description: v })}
+                />
+              </div>
+              <div className="grid md:grid-cols-2 gap-8 mb-12">
+                <Card className="glass border-white/10 p-8 hover:border-accent-cyan/30 transition-all duration-300">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-6 h-6 text-accent-cyan" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold mb-2">История</h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        Компания основана в {founded || 1993} году. За это время мы выросли до одного из ведущих интеграторов решений ИБ.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="glass border-white/10 p-8 hover:border-accent-cyan/30 transition-all duration-300">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-purple/20 to-accent-pink/20 flex items-center justify-center flex-shrink-0">
+                      <Users className="w-6 h-6 text-accent-purple" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold mb-2">Команда</h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        В компании работает {employees || 59} специалистов: инженеры, разработчики, менеджеры и эксперты.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
             </div>
           </div>
         </section>
@@ -280,17 +342,41 @@ function renderBlock(
     case "departments": {
       const { departments = [] } = content
       return (
-        <section id="departments" className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-8">Отделы</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {departments.map((dept: any) => (
-                <Card key={dept.id} className="p-4 space-y-2">
-                  <p className="text-sm text-muted-foreground">{dept.slug}</p>
-                  <h3 className="text-lg font-semibold">{dept.name}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-3">{dept.description}</p>
-                </Card>
-              ))}
+        <section id="departments" className="py-24 bg-gradient-to-b from-background via-muted/30 to-background relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-accent-purple/5 to-transparent rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-accent-cyan/5 to-transparent rounded-full blur-3xl" />
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
+                  Структура и <span className="gradient-text-cyan-purple">отделы</span>
+                </h2>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
+                  Познакомьтесь с командами, которые делают компанию успешной
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {departments.map((dept: any, index: number) => {
+                  const Icon = deptIconMap[dept.icon] || Building
+                  const gradient = gradientMap[index % gradientMap.length]
+                  return (
+                    <Link key={dept.id || index} href={"/departments/" + dept.slug}>
+                      <Card className={"p-6 h-full card-hover group cursor-pointer bg-white bg-gradient-to-br " + gradient + " border-2 border-border backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all duration-300"}>
+                        <div className="flex flex-col h-full">
+                          <div className="w-14 h-14 rounded-xl bg-accent-cyan flex items-center justify-center mb-4 shadow-lg shadow-accent-cyan/50 group-hover:shadow-xl group-hover:shadow-accent-cyan/70 transition-all duration-300 group-hover:scale-110">
+                            <Icon className="w-7 h-7 text-brand-navy" />
+                          </div>
+                          <h3 className="text-xl font-semibold mb-2 text-brand-navy group-hover:text-accent-cyan transition-colors">{dept.name}</h3>
+                          <p className="text-sm text-foreground/80 mb-4 flex-grow leading-relaxed line-clamp-3">{dept.description}</p>
+                          <div className="flex items-center text-sm font-medium group-hover:gap-2 transition-all gradient-text-cyan-purple">
+                            Подробнее <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </Card>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </section>
@@ -300,17 +386,45 @@ function renderBlock(
     case "directions": {
       const { directions = [] } = content
       return (
-        <section className="py-16">
+        <section id="directions" className="py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-8">Направления</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {directions.map((dir: any) => (
-                <Card key={dir.id} className="p-4 space-y-2">
-                  <p className="text-sm text-muted-foreground">{dir.slug}</p>
-                  <h3 className="text-lg font-semibold">{dir.name}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-3">{dir.description}</p>
-                </Card>
-              ))}
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">Направления деятельности</h2>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
+                  Комплексные решения для защиты вашего бизнеса
+                </p>
+              </div>
+              <div className="space-y-6">
+                {directions.map((dir: any, index: number) => {
+                  const Icon = dirIconMap[dir.icon] || Shield
+                  return (
+                    <Link key={dir.id || index} href={"/directions/" + dir.slug}>
+                      <Card className="p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group cursor-pointer overflow-hidden relative">
+                        <div className={"absolute inset-0 bg-gradient-to-r " + (dir.color || "from-red-500 to-orange-500") + " opacity-0 group-hover:opacity-5 transition-opacity"} />
+                        <div className="relative flex flex-col md:flex-row gap-6 items-start">
+                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/10 to-accent-cyan/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                            <Icon className="w-8 h-8 text-primary group-hover:text-accent-cyan transition-colors" />
+                          </div>
+                          <div className="flex-grow">
+                            <h3 className="text-2xl font-semibold mb-3 group-hover:text-accent-cyan transition-colors">{dir.name}</h3>
+                            <p className="text-muted-foreground mb-4 leading-relaxed">{dir.description}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {(dir.services || []).slice(0, 3).map((svc: string, idx: number) => (
+                                <span key={idx} className="text-xs px-3 py-1 bg-muted rounded-full text-muted-foreground">{svc}</span>
+                              ))}
+                              {(dir.services || []).length > 3 && <span className="text-xs px-3 py-1 bg-muted rounded-full text-muted-foreground">+{dir.services.length - 3} еще</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center text-accent-cyan font-medium group-hover:gap-2 transition-all self-center">
+                            Узнать больше <ArrowRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </Card>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </section>
@@ -320,22 +434,33 @@ function renderBlock(
     case "mission": {
       const { title = "Наша миссия", description = "", values = [] } = content
       return (
-        <section className="py-16 bg-gradient-to-br from-primary/5 to-accent-cyan/5">
+        <section id="mission" className="py-24 bg-gradient-to-br from-primary/5 to-accent-cyan/5">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-10 space-y-4">
-              <h2 className="text-3xl font-bold">{title}</h2>
-              <p className="text-lg text-muted-foreground">{description}</p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {values.map((v: any, idx: number) => (
-                <Card key={idx} className="p-4 space-y-2 text-center">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto font-semibold">
-                    {idx + 1}
-                  </div>
-                  <h3 className="font-semibold">{v.title}</h3>
-                  <p className="text-sm text-muted-foreground">{v.description}</p>
-                </Card>
-              ))}
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4">
+                  <Target className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Наши ценности</span>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-balance">{title}</h2>
+                <EditableText isEditing={isEditing} as="p" className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty leading-relaxed" value={description} onChange={(v) => onChange({ ...content, description: v })} />
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                {values.map((val: any, index: number) => (
+                  <Card key={index} className="p-6 text-center hover:shadow-lg transition-shadow">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent-cyan mx-auto mb-4 flex items-center justify-center text-white font-bold text-xl">{index + 1}</div>
+                    <h3 className="text-lg font-semibold mb-2">{val.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{val.description}</p>
+                  </Card>
+                ))}
+              </div>
+              <div className="text-center">
+                <Link href="/mission-ethics">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 group">
+                    Узнать больше о миссии и этике <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -345,16 +470,33 @@ function renderBlock(
     case "benefits": {
       const { benefits = [] } = content
       return (
-        <section className="py-16 bg-background">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-8">Бонусы и льготы</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {benefits.map((benefit: any, idx: number) => (
-                <Card key={idx} className="p-4 space-y-2">
-                  <h3 className="font-semibold">{benefit.title}</h3>
-                  <p className="text-sm text-muted-foreground">{benefit.description}</p>
-                </Card>
-              ))}
+        <section id="benefits" className="py-24 relative overflow-hidden bg-background">
+          <div className="absolute top-20 left-10 w-96 h-96 rounded-full bg-gradient-to-br from-accent-purple/10 to-accent-pink/10 blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-80 h-80 rounded-full bg-gradient-to-br from-accent-cyan/10 to-accent-orange/10 blur-3xl" />
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
+                  Бонусы <span className="gradient-text-multi">и льготы</span>
+                </h2>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
+                  Мы ценим вклад каждого сотрудника
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                {benefits.map((benefit: any, idx: number) => {
+                  const Icon = benefitIconMap[benefit.icon] || Award
+                  return (
+                    <Card key={idx} className="glass border-white/10 p-6 hover:border-accent-cyan/30 transition-all duration-300 group">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <Icon className="w-6 h-6 text-accent-cyan" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">{benefit.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{benefit.description}</p>
+                    </Card>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </section>
@@ -364,26 +506,36 @@ function renderBlock(
     case "regulations": {
       const { codeOfConduct = [] } = content
       return (
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-3xl font-bold">Регламенты и этика</h2>
-                <p className="text-muted-foreground">Ключевые принципы компании</p>
-              </div>
-              <Button variant="ghost" asChild>
-                <Link href="/mission-ethics" className="inline-flex items-center gap-1">
-                  Подробнее <ArrowRight className="w-4 h-4" />
-                </Link>
-              </Button>
-            </div>
-            <Card className="p-6 space-y-2">
-              {codeOfConduct.map((line: string, idx: number) => (
-                <p key={idx} className="text-sm text-muted-foreground">
-                  • {line}
+        <section id="regulations" className="py-24 relative overflow-hidden bg-muted/30">
+          <div className="absolute top-20 right-10 w-96 h-96 rounded-full bg-gradient-to-br from-accent-cyan/10 to-accent-purple/10 blur-3xl" />
+          <div className="absolute bottom-20 left-10 w-80 h-80 rounded-full bg-gradient-to-br from-accent-orange/10 to-accent-pink/10 blur-3xl" />
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
+                  Регламенты <span className="gradient-text-multi">работы</span>
+                </h2>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
+                  Основные правила и процессы
                 </p>
-              ))}
-            </Card>
+              </div>
+              <Card className="glass border-white/10 p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent-purple/20 to-accent-pink/20 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-accent-purple" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Принципы</h3>
+                </div>
+                <div className="space-y-3">
+                  {codeOfConduct.map((line: string, idx: number) => (
+                    <p key={idx} className="text-muted-foreground leading-relaxed flex items-start gap-2">
+                      <span className="text-accent-cyan mt-1">•</span>
+                      <span>{line}</span>
+                    </p>
+                  ))}
+                </div>
+              </Card>
+            </div>
           </div>
         </section>
       )
@@ -392,15 +544,9 @@ function renderBlock(
     case "text": {
       const { text = "Текстовый блок" } = content
       return (
-        <section className="py-8">
+        <section className="py-16">
           <div className="container mx-auto px-4">
-            <EditableText
-              isEditing={isEditing}
-              as="div"
-              className="prose dark:prose-invert max-w-none"
-              value={text}
-              onChange={(value) => onChange({ ...content, text: value })}
-            />
+            <EditableText isEditing={isEditing} as="div" className="prose dark:prose-invert max-w-none" value={text} onChange={(v) => onChange({ ...content, text: v })} />
           </div>
         </section>
       )
@@ -423,7 +569,7 @@ function EditableText({
   value,
   onChange,
   isEditing,
-  as = "p",
+  as = "span",
   className,
 }: {
   value: string
@@ -437,10 +583,10 @@ function EditableText({
 
   return (
     <Tag
-      className={cn(className, "outline-none ring-1 ring-transparent focus:ring-primary/40 rounded-sm")}
+      className={cn(className, "outline-none ring-2 ring-transparent focus:ring-accent-cyan/50 rounded-sm cursor-text")}
       contentEditable
       suppressContentEditableWarning
-      onBlur={(e) => onChange(e.currentTarget.innerText)}
+      onBlur={(e: any) => onChange(e.currentTarget.innerText)}
     >
       {value}
     </Tag>

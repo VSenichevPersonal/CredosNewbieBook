@@ -1,7 +1,7 @@
 "use client"
 
 import { X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,6 +20,11 @@ export function BlockPanel({
   const { openPanelFor, updateBlockContent } = useEditor()
   const [value, setValue] = useState(JSON.stringify(initialContent, null, 2))
   const [saving, setSaving] = useState(false)
+
+  // Синхронизация при смене блока
+  useEffect(() => {
+    setValue(JSON.stringify(initialContent, null, 2))
+  }, [blockId, initialContent])
 
   const handleSave = async () => {
     setSaving(true)
@@ -41,8 +46,8 @@ export function BlockPanel({
         </Button>
       </div>
       <div className="p-4 space-y-3 flex-1 overflow-auto">
-        <p className="text-sm text-muted-foreground">Редактируй JSON контент блока</p>
-        <Textarea className="min-h-[300px] font-mono" value={value} onChange={(e) => setValue(e.target.value)} />
+        <p className="text-sm text-muted-foreground">Редактируй JSON контент блока (ID: {blockId.slice(0, 8)}...)</p>
+        <Textarea className="min-h-[300px] font-mono text-sm" value={value} onChange={(e) => setValue(e.target.value)} />
       </div>
       <div className="p-4 border-t">
         <Button onClick={handleSave} className="w-full" disabled={saving}>
