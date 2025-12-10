@@ -1,10 +1,12 @@
 import { drizzle } from "drizzle-orm/node-postgres"
 import { Pool } from "pg"
 
-const connectionString = process.env.DATABASE_URL
+// На Railway build-окружение может не резолвить internal-хост.
+// Используем DATABASE_URL, при отсутствии — fallback на DATABASE_PUBLIC_URL.
+const connectionString = process.env.DATABASE_URL ?? process.env.DATABASE_PUBLIC_URL
 
 if (!connectionString) {
-  throw new Error("DATABASE_URL is not set")
+  throw new Error("Neither DATABASE_URL nor DATABASE_PUBLIC_URL is set")
 }
 
 const pool = new Pool({
@@ -13,4 +15,3 @@ const pool = new Pool({
 
 export const db = drizzle(pool)
 export { pool }
-

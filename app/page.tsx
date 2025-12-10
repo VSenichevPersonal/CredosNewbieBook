@@ -1,3 +1,4 @@
+export const dynamic = force-dynamic
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { getPageBySlug } from "@/cms/lib/queries"
